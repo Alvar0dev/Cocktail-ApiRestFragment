@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Contenedor para el primer Fragment -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/container_fragment_1"
+        android:name="com.example.simulacroCocktail.fragments.ApiFragment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Contenedor para el segundo Fragment -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/container_fragment_2"
+        android:name="com.example.simulacroCocktail.fragments.ListaFragment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>
