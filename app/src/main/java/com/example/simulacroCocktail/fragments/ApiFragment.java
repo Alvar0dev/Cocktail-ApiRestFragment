@@ -17,7 +17,6 @@ import com.example.simulacroCocktail.R;
 import com.example.simulacroCocktail.api.RetrofitClient;
 import com.example.simulacroCocktail.adapters.ApiAdapter;
 import com.example.simulacroCocktail.database.CocktailDAO;
-import com.example.simulacroCocktail.database.DbHelper;
 import com.example.simulacroCocktail.models.Cocktail;
 
 import java.util.ArrayList;
@@ -40,22 +39,17 @@ public class ApiFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_api, container, false);
 
-        // 1. Inicializar DAO
         dao = new CocktailDAO(getContext());
 
-        // 2. Configurar RecyclerView
         recyclerView = view.findViewById(R.id.rvElementosApi);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // 3. Configurar Adaptador con el listener para la estrella
         adaptador = new ApiAdapter(listaElementos, new ApiAdapter.OnItemClickListener() {
             @Override
             public void onFavoritoClick(Cocktail elemento) {
-                // GUARDAR EN SQLITE
                 dao.insertar(elemento);
                 Toast.makeText(getContext(), elemento.getAtriString1() + " añadido a favoritos", Toast.LENGTH_SHORT).show();
 
-                // AVISAR AL PADRE (MainActivity) para que refresque el fragment de abajo
                 if (getActivity() instanceof MainActivity) {
                     ((MainActivity) getActivity()).actualizarListaFavoritos();
                 }
@@ -63,20 +57,22 @@ public class ApiFragment extends Fragment {
         });
 
         recyclerView.setAdapter(adaptador);
-
-        // 4. Lanzar la descarga de datos
         cargarDatosDeInternet();
 
         return view;
     }
 
+    public void notificarCambioAdapter() {
+        if (adaptador != null) {
+            adaptador.notifyDataSetChanged();
+        }
+    }
+
     private void cargarDatosDeInternet() {
-        // Llamada usando el RetrofitClient y la interfaz ApiService
         RetrofitClient.getApiService().getElementos().enqueue(new Callback<CocktailResponse>() {
             @Override
             public void onResponse(Call<CocktailResponse> call, Response<CocktailResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    // Actualizar la lista con los datos que vienen de la API ("drinks")
                     List<Cocktail> descargados = response.body().getListaCocktail();
                     adaptador.actualizarLista(descargados);
                 } else {

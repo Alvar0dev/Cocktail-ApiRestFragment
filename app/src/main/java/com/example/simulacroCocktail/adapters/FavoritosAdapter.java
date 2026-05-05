@@ -43,6 +43,7 @@ public class FavoritosAdapter extends RecyclerView.Adapter<FavoritosAdapter.View
 
         holder.tvNombre.setText(e.getAtriString1());
 
+        // Aplicar tamaño de letra desde SharedPreferences
         SharedPreferences prefs = holder.itemView.getContext().getSharedPreferences("AjustesApp", Context.MODE_PRIVATE);
         float tamanoLetra = prefs.getFloat("TAMANO_LETRA", 18f); 
         holder.tvNombre.setTextSize(tamanoLetra);
@@ -51,6 +52,7 @@ public class FavoritosAdapter extends RecyclerView.Adapter<FavoritosAdapter.View
             Picasso.get().load(e.getAtriString2()).into(holder.ivFoto);
         }
 
+        // En la lista de favoritos, la estrella siempre está activa
         holder.btnEstrella.setImageResource(android.R.drawable.btn_star_big_on);
 
         holder.itemView.setOnClickListener(v -> {

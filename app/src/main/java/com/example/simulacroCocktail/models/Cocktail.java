@@ -1,9 +1,11 @@
 package com.example.simulacroCocktail.models;
 
 import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
-public class Cocktail {
+public class Cocktail implements Serializable {
 
+    @SerializedName("idDrink")
     private int id;
 
     @SerializedName("strDrink")
@@ -16,7 +18,8 @@ public class Cocktail {
 
     public Cocktail() {}
 
-    public Cocktail(String atriString1, String atriString2, boolean atriBoolean1) {
+    public Cocktail(int id, String atriString1, String atriString2, boolean atriBoolean1) {
+        this.id = id;
         this.atriString1 = atriString1;
         this.atriString2 = atriString2;
         this.atriBoolean1 = atriBoolean1;

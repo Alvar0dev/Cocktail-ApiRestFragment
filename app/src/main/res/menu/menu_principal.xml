@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-    XML
-    <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_changetext"
-        android:title="Añadir"
-        android:icon="@android:drawable/ic_menu_add"
+        android:id="@+id/action_change_font_size"
+        android:title="Cambiar tamaño letra"
+        android:icon="@android:drawable/ic_menu_zoom"
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/action_back"
+        android:id="@+id/action_reset"
+        android:title="Resetear"
         android:icon="@android:drawable/ic_menu_revert"
-        android:title="Añadir"
         app:showAsAction="ifRoom" />
 </menu>

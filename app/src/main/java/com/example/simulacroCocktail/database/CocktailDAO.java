@@ -12,14 +12,31 @@ public class CocktailDAO {
     public CocktailDAO(Context c) { helper = new DbHelper(c); }
 
     public long insertar(Cocktail e) {
+        if (existe(e.getId())) return -1;
         SQLiteDatabase db = helper.getWritableDatabase();
         ContentValues v = new ContentValues();
+        v.put("id", e.getId());
         v.put("atriString1", e.getAtriString1());
         v.put("atriString2", e.getAtriString2());
-        v.put("atriBoolean1", e.isAtriBoolean1() ? 1 : 0);
+        v.put("atriBoolean1", 1); // Lo marcamos como favorito al insertar
         long id = db.insert(DbHelper.TABLE, null, v);
         db.close();
         return id;
+    }
+
+    public boolean existe(int id) {
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT * FROM " + DbHelper.TABLE + " WHERE id = ?", new String[]{String.valueOf(id)});
+        boolean res = c.getCount() > 0;
+        c.close();
+        db.close();
+        return res;
+    }
+
+    public void borrar(int id) {
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.delete(DbHelper.TABLE, "id = ?", new String[]{String.valueOf(id)});
+        db.close();
     }
 
     public ArrayList<Cocktail> obtenerTodos() {
