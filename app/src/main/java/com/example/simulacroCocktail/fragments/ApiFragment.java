@@ -34,6 +34,8 @@ public class ApiFragment extends Fragment {
 
     public ApiFragment() {}
 
+    public boolean mostrandoAlcoholicos = true;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -67,9 +69,28 @@ public class ApiFragment extends Fragment {
             adaptador.notifyDataSetChanged();
         }
     }
+    public void alternarTipoBebida() {
+        // 1. Damos la vuelta al valor (si es true pasa a false, si es false a true)
+        mostrandoAlcoholicos = !mostrandoAlcoholicos;
 
+        // 2. Volvemos a llamar a la función que conecta con Retrofit
+        // Esta función debe usar el 'if (mostrandoAlcoholicos)' que explicamos antes
+        cargarDatosDeInternet();
+
+        // 3. Opcional: Mostrar un mensaje al usuario
+        String mensaje = mostrandoAlcoholicos ? "Mostrando Alcohólicos" : "Mostrando Sin Alcohol";
+        Toast.makeText(getContext(), mensaje, Toast.LENGTH_SHORT).show();
+    }
     private void cargarDatosDeInternet() {
-        RetrofitClient.getApiService().getElementos().enqueue(new Callback<CocktailResponse>() {
+        Call<CocktailResponse> call;
+
+        if (mostrandoAlcoholicos) {
+            call = RetrofitClient.getApiService().getElementos();
+        } else{
+            call= RetrofitClient.getApiService().getNotAlcoholic();
+        }
+
+        call.enqueue(new Callback<CocktailResponse>() {
             @Override
             public void onResponse(Call<CocktailResponse> call, Response<CocktailResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {

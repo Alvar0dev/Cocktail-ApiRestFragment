@@ -1,41 +1,186 @@
-# Proyecto SimulacroCocktail
+﻿### AndroidManifest.xml
+`$lang
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-## Archivo: .\app\src\androidTest\java\com\example\simulacrococtail\ExampleInstrumentedTest.java
+    <uses-permission android:name="android.permission.INTERNET" />
 
-``java
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SimulacroCoctail">
+        <activity
+            android:name=".DetalleActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+``n
+### DetalleActivity.java
+`$lang
+package com.example.simulacroCocktail;
+
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import com.example.simulacroCocktail.database.CocktailDAO;
+import com.example.simulacroCocktail.models.Cocktail;
+import com.squareup.picasso.Picasso;
+
+public class DetalleActivity extends AppCompatActivity {
+
+    private Cocktail cocktail;
+    private CocktailDAO dao;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_detalle);
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        dao = new CocktailDAO(this);
+        cocktail = (Cocktail) getIntent().getSerializableExtra("cocktail");
+
+        TextView tvNombre = findViewById(R.id.tvNombreDetalle);
+        ImageView ivFoto = findViewById(R.id.ivFotoDetalle);
+        Button btnEliminar = findViewById(R.id.btnEliminarFav);
+
+        if (cocktail != null) {
+            tvNombre.setText(cocktail.getAtriString1());
+            Picasso.get().load(cocktail.getAtriString2()).into(ivFoto);
+        }
+
+        btnEliminar.setOnClickListener(v -> {
+            if (cocktail != null) {
+                dao.borrar(cocktail.getId());
+                setResult(RESULT_OK);
+                finish();
+            }
+        });
+    }
+}
+``n
+### MainActivity.java
+`$lang
 package com.example.simulacroCocktail;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import com.example.simulacroCocktail.fragments.ApiFragment;
+import com.example.simulacroCocktail.fragments.ListaFragment;
 
-import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+public class MainActivity extends AppCompatActivity {
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
 
-import static org.junit.Assert.*;
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
-/**
- * Instrumented test, which will execute on an Android device.
- *
- * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
- */
-@RunWith(AndroidJUnit4.class)
-public class ExampleInstrumentedTest {
-    @Test
-    public void useAppContext() {
-        // Context of the app under test.
-        Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.simulacroCocktail", appContext.getPackageName());
+        if (savedInstanceState == null) {
+            Fragment superior = new ApiFragment();
+            Fragment inferior = new ListaFragment();
+
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.container_fragment_1, superior, "TAG_API_FRAGMENT")
+                    .replace(R.id.container_fragment_2, inferior, "TAG_LISTA_FRAGMENT")
+                    .commit();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_principal, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.action_change_font_size) {
+            SharedPreferences prefs = getSharedPreferences("AjustesApp", Context.MODE_PRIVATE);
+            float currentSize = prefs.getFloat("TAMANO_LETRA", 18f);
+            float newSize = currentSize >= 30f ? 14f : currentSize + 4f;
+            
+            prefs.edit().putFloat("TAMANO_LETRA", newSize).apply();
+            
+            // Refrescar fragments para aplicar el cambio
+            actualizarListaFavoritos();
+            actualizarListaApi();
+            return true;
+        } else if (id == R.id.action_reset) {
+            getSharedPreferences("AjustesApp", Context.MODE_PRIVATE).edit().clear().apply();
+            actualizarListaFavoritos();
+            actualizarListaApi();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void actualizarListaFavoritos() {
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("TAG_LISTA_FRAGMENT");
+        if (fragment instanceof ListaFragment) {
+            ((ListaFragment) fragment).cargarDatos();
+        }
+    }
+
+    public void actualizarListaApi() {
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("TAG_API_FRAGMENT");
+        if (fragment instanceof ApiFragment) {
+            ((ApiFragment) fragment).notificarCambioAdapter();
+        }
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\adapters\ApiAdapter.java
-
-``java
+``n
+### ApiAdapter.java
+`$lang
 package com.example.simulacroCocktail.adapters;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +190,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.simulacroCocktail.R;
+import com.example.simulacroCocktail.database.CocktailDAO;
 import com.example.simulacroCocktail.models.Cocktail;
 import com.squareup.picasso.Picasso;
 import java.util.List;
@@ -53,6 +199,7 @@ public class ApiAdapter extends RecyclerView.Adapter<ApiAdapter.MyViewHolder> {
     
     private List<Cocktail> lista;
     private OnItemClickListener listener;
+    private CocktailDAO dao;
 
     public interface OnItemClickListener {
         void onFavoritoClick(Cocktail cocktail);
@@ -67,6 +214,7 @@ public class ApiAdapter extends RecyclerView.Adapter<ApiAdapter.MyViewHolder> {
     @Override
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_elemento, parent, false);
+        dao = new CocktailDAO(parent.getContext());
         return new MyViewHolder(v);
     }
 
@@ -75,14 +223,28 @@ public class ApiAdapter extends RecyclerView.Adapter<ApiAdapter.MyViewHolder> {
         Cocktail c = lista.get(position);
         holder.tvNombre.setText(c.getAtriString1());
         
+        // Aplicar tamaÃ±o de letra desde SharedPreferences
+        SharedPreferences prefs = holder.itemView.getContext().getSharedPreferences("AjustesApp", Context.MODE_PRIVATE);
+        float tamanoLetra = prefs.getFloat("TAMANO_LETRA", 18f); 
+        holder.tvNombre.setTextSize(tamanoLetra);
+
         if (c.getAtriString2() != null && !c.getAtriString2().isEmpty()) {
             Picasso.get().load(c.getAtriString2()).into(holder.ivFoto);
         }
 
-        holder.btnFav.setOnClickListener(v -> {
+        // Verificar si es favorito para poner la estrella rellena o vacÃ­a
+        if (dao.existe(c.getId())) {
             holder.btnFav.setImageResource(android.R.drawable.btn_star_big_on);
-            if (listener != null) {
-                listener.onFavoritoClick(c);
+        } else {
+            holder.btnFav.setImageResource(android.R.drawable.btn_star_big_off);
+        }
+
+        holder.btnFav.setOnClickListener(v -> {
+            if (!dao.existe(c.getId())) {
+                holder.btnFav.setImageResource(android.R.drawable.btn_star_big_on);
+                if (listener != null) {
+                    listener.onFavoritoClick(c);
+                }
             }
         });
     }
@@ -108,11 +270,9 @@ public class ApiAdapter extends RecyclerView.Adapter<ApiAdapter.MyViewHolder> {
         }
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\adapters\FavoritosAdapter.java
-
-``java
+``n
+### FavoritosAdapter.java
+`$lang
 package com.example.simulacroCocktail.adapters;
 
 import android.content.Context;
@@ -158,6 +318,7 @@ public class FavoritosAdapter extends RecyclerView.Adapter<FavoritosAdapter.View
 
         holder.tvNombre.setText(e.getAtriString1());
 
+        // Aplicar tamaÃ±o de letra desde SharedPreferences
         SharedPreferences prefs = holder.itemView.getContext().getSharedPreferences("AjustesApp", Context.MODE_PRIVATE);
         float tamanoLetra = prefs.getFloat("TAMANO_LETRA", 18f); 
         holder.tvNombre.setTextSize(tamanoLetra);
@@ -166,6 +327,7 @@ public class FavoritosAdapter extends RecyclerView.Adapter<FavoritosAdapter.View
             Picasso.get().load(e.getAtriString2()).into(holder.ivFoto);
         }
 
+        // En la lista de favoritos, la estrella siempre estÃ¡ activa
         holder.btnEstrella.setImageResource(android.R.drawable.btn_star_big_on);
 
         holder.itemView.setOnClickListener(v -> {
@@ -198,11 +360,9 @@ public class FavoritosAdapter extends RecyclerView.Adapter<FavoritosAdapter.View
         }
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\api\ApiService.java
-
-``java
+``n
+### ApiService.java
+`$lang
 package com.example.simulacroCocktail.api;
 
 import retrofit2.Call;
@@ -213,11 +373,9 @@ public interface ApiService {
     @GET("filter.php?a=Alcoholic")
     Call<CocktailResponse> getElementos();
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\api\CocktailResponse.java
-
-``java
+``n
+### CocktailResponse.java
+`$lang
 package com.example.simulacroCocktail.api;
 
 import java.util.List;
@@ -226,7 +384,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class CocktailResponse {
     
-    // @SerializedName("drinks") es OBLIGATORIO porque así se llama en el JSON de la API
+    // @SerializedName("drinks") es OBLIGATORIO porque asÃ­ se llama en el JSON de la API
     @SerializedName("drinks")
     private List<Cocktail> drinks;
 
@@ -239,11 +397,9 @@ public class CocktailResponse {
         this.drinks = drinks;
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\api\RetrofitClient.java
-
-``java
+``n
+### RetrofitClient.java
+`$lang
 package com.example.simulacroCocktail.api;
 
 import retrofit2.Retrofit;
@@ -264,16 +420,14 @@ public class RetrofitClient {
         return retrofit;
     }
 
-    // Método añadido para que RetrofitClient.getApiService() funcione en el Fragment
+    // MÃ©todo aÃ±adido para que RetrofitClient.getApiService() funcione en el Fragment
     public static ApiService getApiService() {
         return getClient().create(ApiService.class);
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\database\CocktailDAO.java
-
-``java
+``n
+### CocktailDAO.java
+`$lang
 package com.example.simulacroCocktail.database;
 
 import android.content.ContentValues;
@@ -288,14 +442,31 @@ public class CocktailDAO {
     public CocktailDAO(Context c) { helper = new DbHelper(c); }
 
     public long insertar(Cocktail e) {
+        if (existe(e.getId())) return -1;
         SQLiteDatabase db = helper.getWritableDatabase();
         ContentValues v = new ContentValues();
+        v.put("id", e.getId());
         v.put("atriString1", e.getAtriString1());
         v.put("atriString2", e.getAtriString2());
-        v.put("atriBoolean1", e.isAtriBoolean1() ? 1 : 0);
+        v.put("atriBoolean1", 1); // Lo marcamos como favorito al insertar
         long id = db.insert(DbHelper.TABLE, null, v);
         db.close();
         return id;
+    }
+
+    public boolean existe(int id) {
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT * FROM " + DbHelper.TABLE + " WHERE id = ?", new String[]{String.valueOf(id)});
+        boolean res = c.getCount() > 0;
+        c.close();
+        db.close();
+        return res;
+    }
+
+    public void borrar(int id) {
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.delete(DbHelper.TABLE, "id = ?", new String[]{String.valueOf(id)});
+        db.close();
     }
 
     public ArrayList<Cocktail> obtenerTodos() {
@@ -323,11 +494,9 @@ public class CocktailDAO {
         db.close();
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\database\DbHelper.java
-
-``java
+``n
+### DbHelper.java
+`$lang
 package com.example.simulacroCocktail.database;
 
 import android.content.Context;
@@ -356,11 +525,9 @@ public class DbHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\fragments\ApiFragment.java
-
-``java
+``n
+### ApiFragment.java
+`$lang
 package com.example.simulacroCocktail.fragments;
 
 import android.os.Bundle;
@@ -380,7 +547,6 @@ import com.example.simulacroCocktail.R;
 import com.example.simulacroCocktail.api.RetrofitClient;
 import com.example.simulacroCocktail.adapters.ApiAdapter;
 import com.example.simulacroCocktail.database.CocktailDAO;
-import com.example.simulacroCocktail.database.DbHelper;
 import com.example.simulacroCocktail.models.Cocktail;
 
 import java.util.ArrayList;
@@ -403,22 +569,17 @@ public class ApiFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_api, container, false);
 
-        // 1. Inicializar DAO
         dao = new CocktailDAO(getContext());
 
-        // 2. Configurar RecyclerView
         recyclerView = view.findViewById(R.id.rvElementosApi);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // 3. Configurar Adaptador con el listener para la estrella
         adaptador = new ApiAdapter(listaElementos, new ApiAdapter.OnItemClickListener() {
             @Override
             public void onFavoritoClick(Cocktail elemento) {
-                // GUARDAR EN SQLITE
                 dao.insertar(elemento);
-                Toast.makeText(getContext(), elemento.getAtriString1() + " añadido a favoritos", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), elemento.getAtriString1() + " aÃ±adido a favoritos", Toast.LENGTH_SHORT).show();
 
-                // AVISAR AL PADRE (MainActivity) para que refresque el fragment de abajo
                 if (getActivity() instanceof MainActivity) {
                     ((MainActivity) getActivity()).actualizarListaFavoritos();
                 }
@@ -426,20 +587,22 @@ public class ApiFragment extends Fragment {
         });
 
         recyclerView.setAdapter(adaptador);
-
-        // 4. Lanzar la descarga de datos
         cargarDatosDeInternet();
 
         return view;
     }
 
+    public void notificarCambioAdapter() {
+        if (adaptador != null) {
+            adaptador.notifyDataSetChanged();
+        }
+    }
+
     private void cargarDatosDeInternet() {
-        // Llamada usando el RetrofitClient y la interfaz ApiService
         RetrofitClient.getApiService().getElementos().enqueue(new Callback<CocktailResponse>() {
             @Override
             public void onResponse(Call<CocktailResponse> call, Response<CocktailResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    // Actualizar la lista con los datos que vienen de la API ("drinks")
                     List<Cocktail> descargados = response.body().getListaCocktail();
                     adaptador.actualizarLista(descargados);
                 } else {
@@ -454,24 +617,28 @@ public class ApiFragment extends Fragment {
         });
     }
 }
-``
 
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\fragments\ListaFragment.java
-
-``java
+``n
+### ListaFragment.java
+`$lang
 package com.example.simulacroCocktail.fragments;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.simulacroCocktail.DetalleActivity;
+import com.example.simulacroCocktail.MainActivity;
 import com.example.simulacroCocktail.adapters.FavoritosAdapter;
 import com.example.simulacroCocktail.R;
 import com.example.simulacroCocktail.database.CocktailDAO;
@@ -486,6 +653,19 @@ public class ListaFragment extends Fragment {
     private CocktailDAO dao;
     private List<Cocktail> listaFavoritos;
 
+    private final ActivityResultLauncher<Intent> detalleLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    cargarDatos();
+                    // TambiÃ©n avisamos a la API para que quite la estrella rellena
+                    if (getActivity() instanceof MainActivity) {
+                        ((MainActivity) getActivity()).actualizarListaApi();
+                    }
+                }
+            }
+    );
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -498,7 +678,9 @@ public class ListaFragment extends Fragment {
         listaFavoritos = dao.obtenerTodos();
 
         adapter = new FavoritosAdapter(listaFavoritos, cocktail -> {
-            Toast.makeText(getContext(), "Favorito: " + cocktail.getAtriString1(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(getContext(), DetalleActivity.class);
+            intent.putExtra("cocktail", cocktail);
+            detalleLauncher.launch(intent);
         });
 
         recyclerView.setAdapter(adapter);
@@ -513,17 +695,17 @@ public class ListaFragment extends Fragment {
         }
     }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\models\Cocktail.java
-
-``java
+``n
+### Cocktail.java
+`$lang
 package com.example.simulacroCocktail.models;
 
 import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
-public class Cocktail {
+public class Cocktail implements Serializable {
 
+    @SerializedName("idDrink")
     private int id;
 
     @SerializedName("strDrink")
@@ -536,7 +718,8 @@ public class Cocktail {
 
     public Cocktail() {}
 
-    public Cocktail(String atriString1, String atriString2, boolean atriBoolean1) {
+    public Cocktail(int id, String atriString1, String atriString2, boolean atriBoolean1) {
+        this.id = id;
         this.atriString1 = atriString1;
         this.atriString2 = atriString2;
         this.atriBoolean1 = atriBoolean1;
@@ -554,190 +737,46 @@ public class Cocktail {
     public boolean isAtriBoolean1() { return atriBoolean1; }
     public void setAtriBoolean1(boolean atriBoolean1) { this.atriBoolean1 = atriBoolean1; }
 }
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\DetalleActivity.java
-
-``java
-package com.example.simulacroCocktail;
-
-import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-
-public class DetalleActivity extends AppCompatActivity {
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_detalle);
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-    }
-}
-``
-
-## Archivo: .\app\src\main\java\com\example\simulacroCocktail\MainActivity.java
-
-``java
-package com.example.simulacroCocktail;
-
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.fragment.app.Fragment;
-import com.example.simulacroCocktail.fragments.ApiFragment;
-import com.example.simulacroCocktail.fragments.ListaFragment;
-
-public class MainActivity extends AppCompatActivity {
-
-    SharedPreferences prefs = getSharedPreferences("AjustesApp", Context.MODE_PRIVATE);
-    SharedPreferences.Editor editor = prefs.edit();
-
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-
-        if (savedInstanceState == null) {
-            Fragment superior = new ApiFragment();
-            Fragment inferior = new ListaFragment();
-
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container_fragment_1, superior)
-                    .replace(R.id.container_fragment_2, inferior, "TAG_LISTA_FRAGMENT")
-                    .commit();
-        }
-    }
-
-    // 1. Inflar el menú (hacer que aparezca en la barra)
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_principal, menu);
-        return true;
-    }
-
-    // 2. Darle funcionalidad a los botones del menú
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_changetext) {
-
-
-            // Acción al pulsar Añadir
-
-            return true;
-        } else if (id == R.id.action_back) {
-
-            //  Acción al pulsar atras
-            finish();
-
-
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    public void actualizarListaFavoritos() {
-        Fragment fragment = getSupportFragmentManager().findFragmentByTag("TAG_LISTA_FRAGMENT");
-        if (fragment instanceof ListaFragment) {
-            ((ListaFragment) fragment).cargarDatos();
-        }
-    }
-}
-``
-
-## Archivo: .\app\src\main\res\layout\activity_detalle.xml
-
-``xml
+``n
+### activity_detalle.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="20dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <TextView
+        android:id="@+id/tvNombreDetalle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nombre Cocktail"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp"/>
+
+    <ImageView
+        android:id="@+id/ivFotoDetalle"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:scaleType="centerCrop"
+        android:layout_marginBottom="30dp"/>
+
+    <Button
+        android:id="@+id/btnEliminarFav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:text="Eliminar de favoritos"
+        android:backgroundTint="#6750A4"
+        android:textColor="@android:color/white"/>
 
-        <TextView
-            android:id="@+id/tvString1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="Nombre Elemento"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/tvString2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:alpha="0.7"
-            android:text="Descripción o subtítulo aquí"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tvString1"
-            app:layout_constraintVertical_bias="0.195" />
-
-        <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="78dp"
-            android:layout_height="90dp"
-            tools:layout_editor_absoluteX="286dp"
-            tools:layout_editor_absoluteY="-5dp"
-            tools:srcCompat="@tools:sample/avatars" />
-
-        <Button
-            android:id="@+id/button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Eliminar de Favoritos"
-            tools:layout_editor_absoluteX="87dp"
-            tools:layout_editor_absoluteY="71dp" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.cardview.widget.CardView>
-``
-
-## Archivo: .\app\src\main\res\layout\activity_main.xml
-
-``xml
+</LinearLayout>
+``n
+### activity_main.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main"
@@ -762,11 +801,9 @@ public class MainActivity extends AppCompatActivity {
         android:layout_weight="1" />
 
 </LinearLayout>
-``
-
-## Archivo: .\app\src\main\res\layout\fragment_api.xml
-
-``xml
+``n
+### fragment_api.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -795,11 +832,9 @@ public class MainActivity extends AppCompatActivity {
         app:layout_constraintTop_toBottomOf="@+id/textView"
         tools:layout_editor_absoluteX="0dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
-``
-
-## Archivo: .\app\src\main\res\layout\fragment_lista.xml
-
-``xml
+``n
+### fragment_lista.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -811,11 +846,9 @@ public class MainActivity extends AppCompatActivity {
         android:layout_height="match_parent"
         android:padding="8dp" />
 </FrameLayout>
-``
-
-## Archivo: .\app\src\main\res\layout\item_elemento.xml
-
-``xml
+``n
+### item_elemento.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -851,52 +884,24 @@ public class MainActivity extends AppCompatActivity {
         android:contentDescription="Favorito" />
 
 </LinearLayout>
-``
 
-## Archivo: .\app\src\main\res\menu\menu_principal.xml
-
-``xml
-<?xml version="1.0" encoding="utf-8"?>
-    XML
-    <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <item
-        android:id="@+id/action_changetext"
-        android:title="Añadir"
-        android:icon="@android:drawable/ic_menu_add"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_back"
-        android:icon="@android:drawable/ic_menu_revert"
-        android:title="Añadir"
-        app:showAsAction="ifRoom" />
-</menu>
-``
-
-## Archivo: .\app\src\main\res\values\colors.xml
-
-``xml
+``n
+### colors.xml
+`$lang
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
-``
-
-## Archivo: .\app\src\main\res\values\strings.xml
-
-``xml
+``n
+### strings.xml
+`$lang
 <resources>
     <string name="app_name">SimulacroCoctail</string>
 </resources>
-``
-
-## Archivo: .\app\src\main\res\values\themes.xml
-
-``xml
+``n
+### themes.xml
+`$lang
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.SimulacroCoctail" parent="Theme.Material3.DayNight.NoActionBar">
@@ -906,236 +911,5 @@ public class MainActivity extends AppCompatActivity {
 
     <style name="Theme.SimulacroCoctail" parent="Base.Theme.SimulacroCoctail" />
 </resources>
-``
-
-## Archivo: .\app\src\main\res\values-night\themes.xml
-
-``xml
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.SimulacroCoctail" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
-    </style>
-</resources>
-``
-
-## Archivo: .\app\src\main\AndroidManifest.xml
-
-``xml
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.INTERNET" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.SimulacroCoctail">
-        <activity
-            android:name=".DetalleActivity"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-
-</manifest>
-``
-
-## Archivo: .\app\src\test\java\com\example\simulacrococtail\ExampleUnitTest.java
-
-``java
-package com.example.simulacroCocktail;
-
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
- */
-public class ExampleUnitTest {
-    @Test
-    public void addition_isCorrect() {
-        assertEquals(4, 2 + 2);
-    }
-}
-``
-
-## Archivo: .\app\build.gradle.kts
-
-``kotlin
-plugins {
-    alias(libs.plugins.android.application)
-}
-
-android {
-    namespace = "com.example.simulacroCocktail"
-    compileSdk = 36
-
-    defaultConfig {
-        applicationId = "com.example.simulacroCocktail"
-        minSdk = 26
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-}
-
-dependencies {
-    // 🌐 Retrofit + GSON
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    
-    // 🖼️ Picasso (Para cargar imágenes desde URL)
-    implementation("com.squareup.picasso:picasso:2.71828")
-
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.activity)
-    implementation(libs.constraintlayout)
-    implementation(libs.fragment)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
-}
-``
-
-## Archivo: .\gradle\libs.versions.toml
-
-``properties
-[versions]
-agp = "8.13.2"
-junit = "4.13.2"
-junitVersion = "1.3.0"
-espressoCore = "3.7.0"
-appcompat = "1.7.1"
-material = "1.13.0"
-activity = "1.13.0"
-constraintlayout = "2.2.1"
-fragment = "1.8.9"
-
-[libraries]
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
-
-[plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
-
-``
-
-## Archivo: .\build.gradle.kts
-
-``kotlin
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-plugins {
-    alias(libs.plugins.android.application) apply false
-}
-``
-
-## Archivo: .\gradle.properties
-
-``properties
-# Project-wide Gradle settings.
-# IDE (e.g. Android Studio) users:
-# Gradle settings configured through the IDE *will override*
-# any settings specified in this file.
-# For more details on how to configure your build environment visit
-# http://www.gradle.org/docs/current/userguide/build_environment.html
-# Specifies the JVM arguments used for the daemon process.
-# The setting is particularly useful for tweaking memory settings.
-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-# When configured, Gradle will run in incubating parallel mode.
-# This option should only be used with decoupled projects. For more details, visit
-# https://developer.android.com/r/tools/gradle-multi-project-decoupled-projects
-# org.gradle.parallel=true
-# AndroidX package structure to make it clearer which packages are bundled with the
-# Android operating system, and which are packaged with your app's APK
-# https://developer.android.com/topic/libraries/support-library/androidx-rn
-android.useAndroidX=true
-# Enables namespacing of each library's R class so that its R class includes only the
-# resources declared in the library itself and none from the library's dependencies,
-# thereby reducing the size of the R class for that library
-android.nonTransitiveRClass=true
-``
-
-## Archivo: .\local.properties
-
-``properties
-## This file is automatically generated by Android Studio.
-# Do not modify this file -- YOUR CHANGES WILL BE ERASED!
-#
-# This file should *NOT* be checked into Version Control Systems,
-# as it contains information specific to your local configuration.
-#
-# Location of the SDK. This is only used by Gradle.
-# For customization when using a Version Control System, please read the
-# header note.
-sdk.dir=C\:\\Users\\alvar\\AppData\\Local\\Android\\Sdk
-``
-
-## Archivo: .\settings.gradle.kts
-
-``kotlin
-pluginManagement {
-    repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-rootProject.name = "SimulacroCocktail"
-include(":app")
-``
+``n
 

@@ -10,6 +10,8 @@ public class CocktailResponse {
     @SerializedName("drinks")
     private List<Cocktail> drinks;
 
+    // Ver estructura aqui  = "https://www.thecocktaildb.com/api/json/v1/1/filter.php?a=Alcoholic"
+
     // Cambiamos el nombre del getter para que coincida con lo que usas en el Fragment
     public List<Cocktail> getListaCocktail() {
         return drinks;

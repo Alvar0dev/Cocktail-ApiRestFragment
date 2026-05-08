@@ -65,6 +65,16 @@ public class MainActivity extends AppCompatActivity {
             actualizarListaFavoritos();
             actualizarListaApi();
             return true;
+        } else if (id == R.id.change_alcoholic){
+            // Buscamos el fragmento de la API por su TAG
+            Fragment fragment = getSupportFragmentManager().findFragmentByTag("TAG_API_FRAGMENT");
+
+            if (fragment instanceof ApiFragment) {
+                // Llamamos a un método dentro de ApiFragment que cambie el tipo y recargue
+                ((ApiFragment) fragment).alternarTipoBebida();
+            }
+            return true;
+
         }
         return super.onOptionsItemSelected(item);
     }

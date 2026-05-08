@@ -7,4 +7,7 @@ public interface ApiService {
     // Nombre corregido para que coincida con el Fragment
     @GET("filter.php?a=Alcoholic")
     Call<CocktailResponse> getElementos();
+
+    @GET("filter.php?a=Non_Alcoholic")
+    Call<CocktailResponse> getNotAlcoholic();
 }

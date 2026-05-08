@@ -13,4 +13,9 @@
         android:title="Resetear"
         android:icon="@android:drawable/ic_menu_revert"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/change_alcoholic"
+        android:title="Resetear"
+        android:icon="@android:drawable/ic_menu_more"
+        app:showAsAction="ifRoom" />
 </menu>
